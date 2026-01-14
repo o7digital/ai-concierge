@@ -67,19 +67,31 @@ async function fetchAccessToken() {
     return null;
   }
 
-  const response = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-    }),
-  });
+  let response;
+  let data = {};
 
-  const data = await response.json().catch(() => ({}));
+  try {
+    response = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+      }),
+    });
 
-  if (!response.ok) {
+    data = await response.json().catch(() => ({}));
+  } catch (error) {
+    console.error("[cloudbeds] token fetch failed", error);
+    return null;
+  }
+
+  if (!response?.ok) {
+    console.error("[cloudbeds] token response error", {
+      status: response?.status,
+      data,
+    });
     return null;
   }
 
@@ -128,18 +140,34 @@ async function requestCloudbeds(endpoint, params = {}) {
 
   url.search = query.toString();
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: { Accept: "application/json" },
-  });
+  let response;
+  let data = {};
 
-  const data = await response.json().catch(() => ({}));
+  try {
+    response = await fetch(url.toString(), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
 
-  if (!response.ok) {
+    data = await response.json().catch(() => ({}));
+  } catch (error) {
+    console.error("[cloudbeds] request failed", error);
+    return {
+      ok: false,
+      error: "cloudbeds_fetch_failed",
+      message: error?.message || "request_failed",
+    };
+  }
+
+  if (!response?.ok) {
+    console.error("[cloudbeds] response error", {
+      status: response?.status,
+      data,
+    });
     return {
       ok: false,
       error: "cloudbeds_api_error",
-      status: response.status,
+      status: response?.status,
       data,
     };
   }

@@ -7,7 +7,7 @@ let cachedClient = null;
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
 
-  if (!apiKey) {
+  if (!apiKey || apiKey === "sk-REPLACE_ME") {
     const error = new Error(
       "OPENAI_API_KEY is missing. Set it in your environment or .env file.",
     );

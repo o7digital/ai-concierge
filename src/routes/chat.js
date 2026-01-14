@@ -262,8 +262,33 @@ router.post("/", async (req, res) => {
       });
     }
 
+    const isOpenAIError =
+      error?.name?.includes("OpenAI") ||
+      error?.status ||
+      error?.error?.type ||
+      error?.error?.message;
+    const isDebug = process.env.NODE_ENV !== "production";
+
+    if (isOpenAIError) {
+      console.error("[chat] openai error", error);
+      return res.status(502).json({
+        error: "openai_error",
+        ...(isDebug
+          ? {
+              status: error.status,
+              message: error.message,
+              code: error.code,
+              type: error.type || error.error?.type,
+            }
+          : {}),
+      });
+    }
+
     console.error("[chat] error", error);
-    return res.status(500).json({ error: "internal_error" });
+    return res.status(500).json({
+      error: "internal_error",
+      ...(isDebug ? { message: error.message } : {}),
+    });
   }
 });
 
