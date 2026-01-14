@@ -1,0 +1,17 @@
+{
+  "name": "ai-concierge",
+  "version": "1.0.0",
+  "description": "AI Concierge hotelier for Suites Mine (production-ready baseline)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "openai": "^4.60.0"
+  }
+}
