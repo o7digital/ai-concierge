@@ -229,7 +229,9 @@ function mapAvailabilityParams(params = {}) {
   if (params.guests) {
     mapped[PARAM_ADULTS] = params.guests;
   }
-  if (params.roomType) {
+  // Avoid sending roomType when using API key auth, as some Cloudbeds key-based
+  // endpoints reject unknown roomTypeID values with 404.
+  if (params.roomType && !API_KEY) {
     mapped[PARAM_ROOM_TYPE] = params.roomType;
   }
 
