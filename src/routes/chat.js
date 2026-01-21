@@ -102,24 +102,38 @@ router.get("/", (req, res) => {
       <form id="chat-form">
         <label>
           Message
-          <textarea name="message" required>Bonjour, avez-vous une suite du 10 au 12 fevrier ?</textarea>
+          <textarea name="message" required>Bonjour, avez-vous une suite du 21 au 23 janvier 2026 ?</textarea>
         </label>
         <div class="row">
           <label>
             Check-in
-            <input name="checkIn" placeholder="2025-02-10" />
+            <input
+              name="checkIn"
+              type="date"
+              value="2026-01-21"
+              placeholder="2026-01-21"
+            />
           </label>
           <label>
             Check-out
-            <input name="checkOut" placeholder="2025-02-12" />
+            <input
+              name="checkOut"
+              type="date"
+              value="2026-01-23"
+              placeholder="2026-01-23"
+            />
           </label>
           <label>
             Guests
-            <input name="guests" type="number" min="1" placeholder="2" />
+            <input name="guests" type="number" min="1" value="2" placeholder="2" />
           </label>
           <label>
             Room type
-            <input name="roomType" placeholder="Junior Suite" />
+            <select name="roomType">
+              <option value="Junior" selected>Junior</option>
+              <option value="Suite">Suite</option>
+              <option value="Suite Doble">Suite Doble</option>
+            </select>
           </label>
         </div>
         <button type="submit">Send to concierge</button>

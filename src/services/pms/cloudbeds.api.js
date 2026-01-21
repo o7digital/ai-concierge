@@ -26,6 +26,14 @@ const PARAM_END_DATE = process.env.CLOUDBEDS_PARAM_END_DATE || "end_date";
 const PARAM_ADULTS = process.env.CLOUDBEDS_PARAM_ADULTS || "adults";
 const PARAM_ROOM_TYPE = process.env.CLOUDBEDS_PARAM_ROOM_TYPE || "roomTypeID";
 
+const DEBUG = String(process.env.DEBUG_CLOUDBEDS || "").toLowerCase() === "true";
+
+function debugLog(...args) {
+  if (DEBUG) {
+    console.log("[cloudbeds:debug]", ...args);
+  }
+}
+
 let tokenCache = {
   accessToken: null,
   expiresAt: 0,
@@ -39,6 +47,7 @@ function buildUrl(path) {
 
 function ensureConfigured() {
   if (!PROPERTY_ID) {
+    debugLog("configuration missing property id");
     return { ok: false, error: "cloudbeds_property_id_missing" };
   }
 
@@ -47,6 +56,7 @@ function ensureConfigured() {
   }
 
   if (!CLIENT_ID || !CLIENT_SECRET) {
+    debugLog("configuration missing client id/secret");
     return { ok: false, error: "cloudbeds_credentials_missing" };
   }
 
@@ -60,12 +70,19 @@ async function fetchAccessToken() {
 
   const now = Date.now();
   if (tokenCache.accessToken && tokenCache.expiresAt > now + 30_000) {
+    debugLog("using cached access token, expiresAt", tokenCache.expiresAt);
     return tokenCache.accessToken;
   }
 
   if (!CLIENT_ID || !CLIENT_SECRET) {
+    debugLog("cannot fetch token: missing client id/secret");
     return null;
   }
+
+  debugLog("fetching access token", {
+    tokenUrl: TOKEN_URL,
+    clientId: CLIENT_ID ? `${CLIENT_ID.slice(0, 4)}...` : null,
+  });
 
   let response;
   let data = {};
@@ -84,6 +101,7 @@ async function fetchAccessToken() {
     data = await response.json().catch(() => ({}));
   } catch (error) {
     console.error("[cloudbeds] token fetch failed", error);
+    debugLog("token fetch threw", error?.message);
     return null;
   }
 
@@ -91,6 +109,10 @@ async function fetchAccessToken() {
     console.error("[cloudbeds] token response error", {
       status: response?.status,
       data,
+    });
+    debugLog("token response not ok", {
+      status: response?.status,
+      body: data,
     });
     return null;
   }
@@ -116,6 +138,14 @@ async function requestCloudbeds(endpoint, params = {}) {
   if (!configStatus.ok) {
     return configStatus;
   }
+
+  debugLog("request start", {
+    endpoint,
+    propertyId: PROPERTY_ID,
+    baseUrl: BASE_URL,
+    params,
+    authMode: API_KEY ? "api_key" : ACCESS_TOKEN ? "access_token" : "oauth_client_credentials",
+  });
 
   const url = new URL(buildUrl(endpoint));
   const query = new URLSearchParams();
@@ -152,6 +182,7 @@ async function requestCloudbeds(endpoint, params = {}) {
     data = await response.json().catch(() => ({}));
   } catch (error) {
     console.error("[cloudbeds] request failed", error);
+    debugLog("fetch error", error?.message);
     return {
       ok: false,
       error: "cloudbeds_fetch_failed",
@@ -164,6 +195,11 @@ async function requestCloudbeds(endpoint, params = {}) {
       status: response?.status,
       data,
     });
+    debugLog("response not ok", {
+      status: response?.status,
+      body: data,
+      url: url.toString().replace(/access_token=[^&]+/i, "access_token=[masked]"),
+    });
     return {
       ok: false,
       error: "cloudbeds_api_error",
@@ -171,6 +207,12 @@ async function requestCloudbeds(endpoint, params = {}) {
       data,
     };
   }
+
+  debugLog("response ok", {
+    status: response?.status,
+    url: url.toString().replace(/access_token=[^&]+/i, "access_token=[masked]"),
+    sample: typeof data === "object" ? JSON.stringify(data).slice(0, 300) : data,
+  });
 
   return { ok: true, data };
 }
