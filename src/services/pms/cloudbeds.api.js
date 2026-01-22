@@ -149,11 +149,12 @@ async function requestCloudbeds(endpoint, params = {}) {
 
   const url = new URL(buildUrl(endpoint));
   const query = new URLSearchParams();
+  const headers = { Accept: "application/json" };
 
   query.set(PROPERTY_ID_PARAM, PROPERTY_ID);
 
   if (API_KEY) {
-    query.set(API_KEY_PARAM, API_KEY);
+    headers.Authorization = `Bearer ${API_KEY}`;
   } else {
     const token = await fetchAccessToken();
     if (!token) {
@@ -176,7 +177,7 @@ async function requestCloudbeds(endpoint, params = {}) {
   try {
     response = await fetch(url.toString(), {
       method: "GET",
-      headers: { Accept: "application/json" },
+      headers,
     });
 
     data = await response.json().catch(() => ({}));
