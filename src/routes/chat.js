@@ -269,6 +269,60 @@ Behavior:
     return res.json({ reply, intent: "faq", language });
   }
 
+  if (clientId === "gescom") {
+    const normalizedMessage = message
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    const asksForContact =
+      /\b(contact|contacter|courriel|email|mail|telephone|tel|appeler|parler|joindre|rendez|rdv|devis)\b/.test(
+        normalizedMessage,
+      );
+
+    if (asksForContact) {
+      return res.json({
+        reply:
+          "Vous pouvez contacter GESCOM directement par courriel à gescom.mauricie@gmail.com ou par téléphone au +1 (819) 996-1177.",
+        intent: "handoff",
+        language,
+      });
+    }
+
+    const gescomPrompt = `You are Sophie, the GESCOM AI assistant.
+Reply only in the visitor's language. If unclear, reply in French.
+
+GESCOM knowledge:
+- GESCOM is founded by Aurelie Genin and provides remote administrative assistant services for entrepreneurs, freelancers, SMEs and small businesses in Mauricie, Quebec.
+- Areas served include Mauricie, Trois-Rivieres, Shawinigan and Saint-Elie-de-Caxton.
+- Contact email: gescom.mauricie@gmail.com.
+- Contact phone: +1 (819) 996-1177.
+- Services: administrative management, quotes and invoicing, document organization and filing, professional email management, client follow-up, commercial document support, externalized administrative assistance.
+- Positioning: flexible, rigorous, confidential and professional administrative support so business owners can free their time and focus on their core work.
+
+Behavior:
+- Answer naturally as Sophie, not as a rigid menu.
+- Keep replies concise, warm and commercial.
+- If the visitor asks broadly, ask one useful clarifying question.
+- If the visitor wants contact, a quote, pricing or a meeting, give the email and phone directly and invite them to leave their name, email, phone and need.
+- Do not invent prices, contracts, legal claims or availability.`;
+
+    const completion = await createChatCompletion({
+      messages: [
+        { role: "system", content: gescomPrompt },
+        { role: "user", content: message },
+      ],
+      temperature: 0.4,
+    });
+
+    const reply = completion?.choices?.[0]?.message?.content?.trim();
+
+    if (!reply) {
+      return res.status(500).json({ error: "empty_model_response" });
+    }
+
+    return res.json({ reply, intent: "faq", language });
+  }
+
   const pms = DEMO_MODE ? cloudbedsMock : cloudbedsApi;
 
   console.log(`[chat] message received (${language})`);
