@@ -208,6 +208,22 @@ router.post("/", async (req, res) => {
       /\b(problema|problemas|seguridad|contactar|contacto|urgente|urge|alguien|ayuda)\b/.test(
         normalizedMessage,
       );
+    const asksForContact =
+      /\b(quien|con quien|asesor|persona|hablar|contactar|contacto|telefono|email|correo)\b/.test(
+        normalizedMessage,
+      ) &&
+      /\b(hablar|contactar|contacto|llamar|escribir|asesor|ayuda|puedo)\b/.test(
+        normalizedMessage,
+      );
+
+    if (asksForContact) {
+      return res.json({
+        reply:
+          "Puedes hablar directamente con SecuryTI en contacto@securyti.mx.\n\nTambién puedes llamar al 5538352101.",
+        intent: "handoff",
+        language,
+      });
+    }
 
     if (hasNetworkProblem) {
       return res.json({
