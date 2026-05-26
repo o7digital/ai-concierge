@@ -186,12 +186,73 @@ router.get("/", (req, res) => {
 router.post("/", async (req, res) => {
   const payload = req.body || {};
   const message = typeof payload.message === "string" ? payload.message.trim() : "";
+  const clientId =
+    typeof payload.clientId === "string" && payload.clientId.trim()
+      ? payload.clientId.trim().toLowerCase()
+      : "suitesmine";
 
   if (!message) {
     return res.status(400).json({ error: "message_required" });
   }
 
   const language = detectLanguage(message);
+
+  if (clientId === "securyti") {
+    const normalizedMessage = message
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    const hasNetworkProblem =
+      /\bred\b/.test(normalizedMessage) &&
+      /\b(problema|problemas|seguridad|contactar|contacto|urgente|urge|alguien|ayuda)\b/.test(
+        normalizedMessage,
+      );
+
+    if (hasNetworkProblem) {
+      return res.json({
+        reply:
+          "Para problemas con una red, puedes contactar a SecuryTI en contacto@securyti.mx.\n\nEn caso de urgencia, llama al 5538352101.",
+        intent: "handoff",
+        language,
+      });
+    }
+
+    const securytiPrompt = `You are Olivia, the SecuryTI AI assistant.
+Reply only in the visitor's language. If unclear, reply in Spanish.
+
+SecuryTI knowledge:
+- SecuryTI provides cybersecurity services for companies in CDMX and Mexico.
+- Contact: contacto@securyti.mx.
+- Emergency phone: 5538352101.
+- Services: NIST Cybersecurity Framework diagnosis/accreditation, cybersecurity audits, technology consulting, compliance support such as NIST and ISO 27001, digital forensic reports, cybersecurity training, penetration testing, network security, endpoint protection, threat intelligence, ransomware/phishing guidance, and incident response.
+- NIST offer: fast diagnosis based on NIST CSF for Mexican SMEs working or planning to work with customers in the United States and Canada; the site presents it as a 48-hour evaluation with verifiable digital accreditation on blockchain.
+
+Behavior:
+- Answer naturally as an AI assistant, not as a rigid menu.
+- Keep replies concise, useful, and commercial.
+- If the visitor says hello, greet and ask what cybersecurity topic they need help with.
+- If the visitor asks a broad question, ask one clarifying question.
+- If they ask about prices, explain that pricing depends on scope and invite them to share company, need, urgency, email and phone.
+- Never invent prices, guarantees, legal conclusions, or certifications.`;
+
+    const completion = await createChatCompletion({
+      messages: [
+        { role: "system", content: securytiPrompt },
+        { role: "user", content: message },
+      ],
+      temperature: 0.4,
+    });
+
+    const reply = completion?.choices?.[0]?.message?.content?.trim();
+
+    if (!reply) {
+      return res.status(500).json({ error: "empty_model_response" });
+    }
+
+    return res.json({ reply, intent: "faq", language });
+  }
+
   const pms = DEMO_MODE ? cloudbedsMock : cloudbedsApi;
 
   console.log(`[chat] message received (${language})`);
