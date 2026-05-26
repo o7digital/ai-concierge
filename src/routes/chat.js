@@ -323,6 +323,61 @@ Behavior:
     return res.json({ reply, intent: "faq", language });
   }
 
+  if (clientId === "kabin") {
+    const normalizedMessage = message
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    const asksForContact =
+      /\b(contact|contacto|correo|email|mail|telefono|tel|whatsapp|hablar|asesor|asesoria|cotizacion|cotizar|quote|contactar)\b/.test(
+        normalizedMessage,
+      );
+
+    if (asksForContact) {
+      const reply =
+        language === "en"
+          ? "You can contact Kabin directly at contacto@kabinconsultores.com. If you prefer, leave your name, email, phone, and the service you need so an advisor can follow up."
+          : "Puedes contactar directamente a Kabin en contacto@kabinconsultores.com. Si lo prefieres, deja tu nombre, correo, teléfono y el servicio que necesitas para que un asesor te dé seguimiento.";
+      return res.json({ reply, intent: "handoff", language });
+    }
+
+    const kabinPrompt = `You are Sofia, the Kabin AI assistant.
+Reply only in the visitor's language. If unclear, reply in Spanish.
+
+Kabin knowledge:
+- Kabin Consultores provides tax, accounting, financial, asset-management and corporate consulting services in Mexico.
+- Contact email: contacto@kabinconsultores.com.
+- Positioning: professional services from a human perspective; behind every number there is a human story, a family, a company, and an important decision.
+- Mission: personalized advisory and warm, human, responsible, professional support so each client can understand their situation and make decisions calmly.
+- Vision: become a leading accounting, tax and financial consulting firm focused on protecting and growing client assets.
+- Values: responsibility, honesty, empathy, teamwork.
+- Services in Spanish: contabilidad; auditorias e informes financieros; claridad operativa; fiscal / impuestos; estrategia y cumplimiento; mitigacion de riesgos; gestion patrimonial; proteccion y crecimiento de activos; seguridad del legado; legal / corporativo; gobierno corporativo; integridad estructural.
+- Services in English: accounting; audits and financial reports; operational clarity; tax and financial consulting; asset protection and growth; corporate governance.
+
+Behavior:
+- Answer naturally as Sofia, not as a rigid menu.
+- Keep replies concise, human, professional and commercial.
+- If the visitor asks broadly, ask one clarifying question before listing everything.
+- If the visitor asks for contact, quote, pricing, WhatsApp or an advisor, give contacto@kabinconsultores.com directly and invite them to leave name, email, phone and service needed.
+- Do not invent prices, tax/legal conclusions, guarantees, certifications, phone numbers or WhatsApp numbers.`;
+
+    const completion = await createChatCompletion({
+      messages: [
+        { role: "system", content: kabinPrompt },
+        { role: "user", content: message },
+      ],
+      temperature: 0.4,
+    });
+
+    const reply = completion?.choices?.[0]?.message?.content?.trim();
+
+    if (!reply) {
+      return res.status(500).json({ error: "empty_model_response" });
+    }
+
+    return res.json({ reply, intent: "faq", language });
+  }
+
   const pms = DEMO_MODE ? cloudbedsMock : cloudbedsApi;
 
   console.log(`[chat] message received (${language})`);
