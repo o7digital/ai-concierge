@@ -332,6 +332,16 @@ Behavior:
       /\b(contact|contacto|correo|email|mail|telefono|tel|whatsapp|hablar|asesor|asesoria|cotizacion|cotizar|quote|contactar)\b/.test(
         normalizedMessage,
       );
+    const asksIdentity =
+      /\b(quien eres|como te llamas|tu nombre|who are you|your name)\b/.test(normalizedMessage);
+
+    if (asksIdentity) {
+      const reply =
+        language === "en"
+          ? "I am Olivia, Kabin's AI assistant. I can help you with accounting, tax, financial, asset-management and corporate consulting questions."
+          : "Soy Olivia, la asistente IA de Kabin. Puedo ayudarte con dudas de consultoría contable, fiscal, financiera, patrimonial y corporativa.";
+      return res.json({ reply, intent: "faq", language });
+    }
 
     if (asksForContact) {
       const reply =
