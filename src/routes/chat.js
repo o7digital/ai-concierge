@@ -4,6 +4,10 @@ import { SYSTEM_PROMPT } from "../config/prompt.js";
 import { DEMO_MODE, HOTEL_NAME } from "../config/settings.js";
 import { detectIntent } from "../services/intent.js";
 import { createChatCompletion } from "../services/openai.js";
+import {
+  safePersistAssistantMessage,
+  safePersistVisitorMessage,
+} from "../services/channelManager.js";
 import * as cloudbedsMock from "../services/pms/cloudbeds.mock.js";
 import * as cloudbedsApi from "../services/pms/cloudbeds.api.js";
 import { detectLanguage } from "../utils/language.js";
@@ -196,6 +200,23 @@ router.post("/", async (req, res) => {
   }
 
   const language = detectLanguage(message);
+  const persistencePayload = { ...payload, clientCode: payload.clientCode || clientId, language };
+  const persistAssistantReply = async (body, metadata = {}) => {
+    if (body?.reply) {
+      await safePersistAssistantMessage(
+        persistencePayload,
+        body.reply,
+        body.model || "ai-concierge",
+        metadata,
+      );
+    }
+    return res.json(body);
+  };
+
+  await safePersistVisitorMessage(persistencePayload, message, {
+    route: "/chat",
+    detectedLanguage: language,
+  });
 
   if (clientId === "securyti") {
     const normalizedMessage = message
@@ -217,21 +238,21 @@ router.post("/", async (req, res) => {
       );
 
     if (asksForContact) {
-      return res.json({
+      return persistAssistantReply({
         reply:
           "Puedes hablar directamente con SecuryTI en contacto@securyti.mx.\n\nTambién puedes llamar al 5538352101.",
         intent: "handoff",
         language,
-      });
+      }, { intent: "handoff" });
     }
 
     if (hasNetworkProblem) {
-      return res.json({
+      return persistAssistantReply({
         reply:
           "Para problemas con una red, puedes contactar a SecuryTI en contacto@securyti.mx.\n\nEn caso de urgencia, llama al 5538352101.",
         intent: "handoff",
         language,
-      });
+      }, { intent: "handoff" });
     }
 
     const securytiPrompt = `You are Olivia, the SecuryTI AI assistant.
@@ -266,7 +287,7 @@ Behavior:
       return res.status(500).json({ error: "empty_model_response" });
     }
 
-    return res.json({ reply, intent: "faq", language });
+    return persistAssistantReply({ reply, intent: "faq", language }, { intent: "faq" });
   }
 
   if (clientId === "gescom") {
@@ -280,12 +301,12 @@ Behavior:
       );
 
     if (asksForContact) {
-      return res.json({
+      return persistAssistantReply({
         reply:
           "Vous pouvez contacter GESCOM directement par courriel à gescom.mauricie@gmail.com ou par téléphone au +1 (819) 996-1177.",
         intent: "handoff",
         language,
-      });
+      }, { intent: "handoff" });
     }
 
     const gescomPrompt = `You are Sophie, the GESCOM AI assistant.
@@ -320,7 +341,7 @@ Behavior:
       return res.status(500).json({ error: "empty_model_response" });
     }
 
-    return res.json({ reply, intent: "faq", language });
+    return persistAssistantReply({ reply, intent: "faq", language }, { intent: "faq" });
   }
 
   if (clientId === "kabin") {
@@ -340,7 +361,7 @@ Behavior:
         language === "en"
           ? "I am Olivia, Kabin's AI assistant. I can help you with accounting, tax, financial, asset-management and corporate consulting questions."
           : "Soy Olivia, la asistente IA de Kabin. Puedo ayudarte con dudas de consultoría contable, fiscal, financiera, patrimonial y corporativa.";
-      return res.json({ reply, intent: "faq", language });
+      return persistAssistantReply({ reply, intent: "faq", language }, { intent: "faq" });
     }
 
     if (asksForContact) {
@@ -348,7 +369,7 @@ Behavior:
         language === "en"
           ? "You can contact Kabin directly at contacto@kabinconsultores.com. If you prefer, leave your name, email, phone, and the service you need so an advisor can follow up."
           : "Puedes contactar directamente a Kabin en contacto@kabinconsultores.com. Si lo prefieres, deja tu nombre, correo, teléfono y el servicio que necesitas para que un asesor te dé seguimiento.";
-      return res.json({ reply, intent: "handoff", language });
+      return persistAssistantReply({ reply, intent: "handoff", language }, { intent: "handoff" });
     }
 
     const kabinPrompt = `You are Olivia, the Kabin AI assistant.
@@ -385,7 +406,7 @@ Behavior:
       return res.status(500).json({ error: "empty_model_response" });
     }
 
-    return res.json({ reply, intent: "faq", language });
+    return persistAssistantReply({ reply, intent: "faq", language }, { intent: "faq" });
   }
 
   const pms = DEMO_MODE ? cloudbedsMock : cloudbedsApi;
@@ -462,7 +483,7 @@ Behavior:
       return res.status(500).json({ error: "empty_model_response" });
     }
 
-    return res.json({ reply, intent, language });
+    return persistAssistantReply({ reply, intent, language }, { intent });
   } catch (error) {
     if (error?.code === "OPENAI_API_KEY_MISSING") {
       console.error("[chat] OpenAI API key missing");
