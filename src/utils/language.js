@@ -9,7 +9,7 @@ export function detectLanguage(text = "") {
     return "es";
   }
 
-  if (/\b(hello|thanks|room|availability|booking|price)\b/i.test(value)) {
+  if (/\b(hello|thanks|room|availability|booking|price|need|info|information|details|request)\b/i.test(value)) {
     return "en";
   }
 

@@ -218,6 +218,64 @@ router.post("/", async (req, res) => {
     detectedLanguage: language,
   });
 
+  if (clientId === "vialterna") {
+    const normalizedMessage = message
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    const asksForInfo =
+      /\b(info|information|details|request|quote|audit|expert|contact|help|need|necesito|informacion|detalles|solicitud|cotizacion|asesor|ayuda)\b/.test(
+        normalizedMessage,
+      );
+
+    if (asksForInfo) {
+      const reply =
+        language === "en"
+          ? "Please leave your contact details and request information so a Vialterna expert can follow up."
+          : "Déjanos tus datos de contacto y los detalles de tu solicitud para que un experto Vialterna pueda dar seguimiento.";
+      return persistAssistantReply({
+        reply,
+        intent: "lead_capture",
+        language,
+        action: "show_lead_form",
+        leadForm: {
+          fields: ["name", "company", "email", "phone", "details"],
+          detailsRows: 3,
+          detailsLabel: language === "en" ? "Request info details" : "Detalles de la solicitud",
+          required: ["name", "company", "email", "phone", "details"],
+        },
+      }, { intent: "lead_capture", action: "show_lead_form" });
+    }
+
+    const vialternaPrompt = `You are Olivia, the Vialterna AI assistant.
+Reply only in the visitor's language. If unclear, reply in Spanish.
+
+Vialterna knowledge:
+- Vialterna designs, deploys and operates resilient enterprise connectivity for distributed companies in Mexico.
+- Core topics: managed connectivity, SD-WAN, multi-carrier failover, LTE/5G backup, satellite backup, IoT SIM/eSIM, network monitoring, Telco audits, telecom cost optimization and business continuity.
+- Contact: atencionaclientes@vialterna.com, +52 55 8062 6884.
+
+Behavior:
+- Answer naturally as an AI assistant, not as a rigid widget.
+- If the visitor asks for information, audit, quote, contact or expert follow-up, request structured lead details via the lead form action.`;
+
+    const completion = await createChatCompletion({
+      messages: [
+        { role: "system", content: vialternaPrompt },
+        { role: "user", content: message },
+      ],
+      temperature: 0.4,
+    });
+
+    const reply = completion?.choices?.[0]?.message?.content?.trim();
+
+    if (!reply) {
+      return res.status(500).json({ error: "empty_model_response" });
+    }
+
+    return persistAssistantReply({ reply, intent: "faq", language }, { intent: "faq" });
+  }
+
   if (clientId === "securyti") {
     const normalizedMessage = message
       .toLowerCase()
