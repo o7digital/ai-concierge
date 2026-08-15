@@ -359,15 +359,20 @@ Behavior:
       );
 
     if (asksForContact) {
+      const contactReply =
+        language === "en"
+          ? "You can contact GESCOM directly at gescom.mauricie@gmail.com or +1 (819) 996-1177. You can also leave your contact details and request in Olivia AI for follow-up."
+          : language === "es"
+            ? "Puede contactar directamente con GESCOM en gescom.mauricie@gmail.com o en el +1 (819) 996-1177. También puede dejar sus datos y su solicitud en Olivia AI para recibir seguimiento."
+            : "Vous pouvez contacter GESCOM directement par courriel à gescom.mauricie@gmail.com ou par téléphone au +1 (819) 996-1177. Vous pouvez aussi laisser vos coordonnées et votre besoin dans Olivia AI pour assurer le suivi.";
       return persistAssistantReply({
-        reply:
-          "Vous pouvez contacter GESCOM directement par courriel à gescom.mauricie@gmail.com ou par téléphone au +1 (819) 996-1177.",
+        reply: contactReply,
         intent: "handoff",
         language,
       }, { intent: "handoff" });
     }
 
-    const gescomPrompt = `You are Sophie, the GESCOM AI assistant.
+    const gescomPrompt = `You are Olivia AI, the GESCOM AI assistant.
 Reply only in the visitor's language. If unclear, reply in French.
 
 GESCOM knowledge:
@@ -379,7 +384,7 @@ GESCOM knowledge:
 - Positioning: flexible, rigorous, confidential and professional administrative support so business owners can free their time and focus on their core work.
 
 Behavior:
-- Answer naturally as Sophie, not as a rigid menu.
+- Answer naturally as Olivia AI, not as a rigid menu.
 - Keep replies concise, warm and commercial.
 - If the visitor asks broadly, ask one useful clarifying question.
 - If the visitor wants contact, a quote, pricing or a meeting, give the email and phone directly and invite them to leave their name, email, phone and need.
